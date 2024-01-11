@@ -196,8 +196,11 @@ def get_shape():
     return Piece(5, 0, random.choice(shapes))
  
  
-def draw_text_middle(text, size, color, surface):
-    pass
+def draw_text_middle(surface, text, size, color):
+    font = pygame.font.SysFont("timesnewroman", size, bold = True)
+    label = font.render(text, 1, color)
+
+    surface.blit(label, (top_left_x + play_width / 2 - (label.get_width() / 2), top_left_y + play_height / 2 - label.get_height() / 2))
     
    
 def draw_grid(surface, row, col):
@@ -229,9 +232,10 @@ def clear_rows(grid, locked):
                 newKey = (x, y + inc)
                 locked[newKey] = locked.pop(key)
 
+    return inc
 
 def draw_next_shape(shape, surface):
-    font = pygame.font.SysFont('timesnewroman', block_size)
+    font = pygame.font.SysFont("timesnewroman", 30)
     label = font.render('Next Shape', 1, (255, 255, 255))
 
     sx = top_left_x + play_width + 50
@@ -247,14 +251,22 @@ def draw_next_shape(shape, surface):
     surface.blit(label, (sx + 10, sy - block_size))
 
 
-def draw_window(surface, grid):
+def draw_window(surface, grid, score = 0):
     surface.fill((0, 0 , 0))
 
     pygame.font.init()
-    font = pygame.font.SysFont('timesnewroman', 60)
+    font = pygame.font.SysFont("timesnewroman", 60)
     label = font.render('Tetris', 1, (255, 255, 255))
     
-    surface.blit(label, ((top_left_x + (play_width / 2) - (label.get_width() / 2)), block_size))
+    surface.blit(label, ((top_left_x + (play_width / 2) - (label.get_width() / 2)), 30))
+
+    font = pygame.font.SysFont('timesnewroman', 30)
+    label = font.render('Score: ' + str(score), 1, (255, 255, 255))
+
+    sx = top_left_x + play_width + 50
+    sy = top_left_y + play_height / 2 - 100
+
+    surface.blit(label, (sx + 20, sy + 160))
 
     for i in range(len(grid)):
         for j in range(len(grid[i])):
@@ -278,6 +290,7 @@ def main():
     fall_time = 0
     fall_speed = 0.27
     level_time = 0
+    score = 0
  
     while run:
         grid = create_grid(locked_positions)
@@ -285,14 +298,11 @@ def main():
         level_time += clock.get_rawtime()
         clock.tick()
 
-        if fall_time/1000 > 5:
+        if level_time/1000 > 5:
             level__time = 0
-            current_piece.y += 1
-            if not (valid_space(current_piece, grid)) and current_piece.y > 0:
-                current_piece.y -= 1
-                change_piece = True
-
-
+            if fall_speed > 0.12:
+                fall_speed -= 0.005
+        
         if fall_time/1000 > fall_speed:
             fall_time = 0
             current_piece.y += 1
@@ -343,20 +353,33 @@ def main():
             current_piece = next_piece
             next_piece = get_shape()
             change_piece = False
-
+            score += clear_rows(grid, locked_positions) * 10
             clear_rows(grid, locked_positions)
 
-        draw_window(win, grid)
+        draw_window(win, grid, score)
         draw_next_shape(next_piece, win)
-        pygame.display.update();
-
+        pygame.display.update()
 
         if check_lost(locked_positions):
+            draw_text_middle(win, 'YOU LOST!', 80, (255, 255, 255))
+            pygame.display.update()
+            pygame.time.delay(1500)
             run = False
     
 def main_menu(win):
-    main(win)
+    run = True
+    while run:
+        win.fill((0, 0, 0))
+        draw_text_middle(win, 'Press Any Key to Play', 60, (255, 255, 255))
+        pygame.display.update()
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                run = False
+            if event.type == pygame.KEYDOWN:
+                main()
+
+    pygame.display.quit()
 
 win = pygame.display.set_mode((s_width, s_height))
 pygame.display.set_caption('Tetris')
-main()  # start game
+main_menu(win)
